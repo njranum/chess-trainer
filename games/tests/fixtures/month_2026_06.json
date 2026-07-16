@@ -1,0 +1,84 @@
+{
+ "games": [
+  {
+   "uuid": "uuid-a",
+   "url": "https://www.chess.com/game/live/uuid-a",
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"Snoopy\"]\n[Black \"villain99\"]\n[Result \"1-0\"]\n[ECO \"C20\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Pawn-Opening-Wayward-Queen-Attack\"]\n[TimeControl \"300\"]\n\n1. e4 { [%clk 0:04:58.5] } 1... e5 { [%clk 0:04:57] } 2. Bc4 { [%clk 0:04:56.1] } 2... Nc6 { [%clk 0:04:50] } 3. Qh5 { [%clk 0:04:54.2] } 3... Nf6 { [%clk 0:04:45] } 4. Qxf7# { [%clk 0:04:52.8] } 1-0",
+   "end_time": 1750000000,
+   "rated": true,
+   "time_class": "blitz",
+   "rules": "chess",
+   "time_control": "300",
+   "white": {
+    "username": "Snoopy",
+    "rating": 1512,
+    "result": "win"
+   },
+   "black": {
+    "username": "villain99",
+    "rating": 1498,
+    "result": "checkmated"
+   }
+  },
+  {
+   "uuid": "uuid-b",
+   "url": "https://www.chess.com/game/live/uuid-b",
+   "pgn": "[Event \"Daily Chess\"]\n[Site \"Chess.com\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"grinder\"]\n[Black \"Snoopy\"]\n[Result \"1-0\"]\n[ECO \"D31\"]\n[ECOUrl \"https://www.chess.com/openings/Queens-Gambit-Declined\"]\n[TimeControl \"1/86400\"]\n\n1. d4 d5 2. c4 e6 3. Nc3 1-0",
+   "end_time": 1750086400,
+   "rated": false,
+   "time_class": "daily",
+   "rules": "chess",
+   "time_control": "1/86400",
+   "white": {
+    "username": "grinder",
+    "rating": 1600,
+    "result": "win"
+   },
+   "black": {
+    "username": "Snoopy",
+    "rating": 1505,
+    "result": "resigned"
+   }
+  },
+  {
+   "uuid": "uuid-c",
+   "url": "https://www.chess.com/game/live/uuid-c",
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"Snoopy\"]\n[Black \"villain99\"]\n[Result \"1-0\"]\n[ECO \"C20\"]\n[ECOUrl \"https://www.chess.com/openings/Kings-Pawn-Opening-Wayward-Queen-Attack\"]\n[TimeControl \"300\"]\n\n1. e4 { [%clk 0:04:58.5] } 1... e5 { [%clk 0:04:57] } 2. Bc4 { [%clk 0:04:56.1] } 2... Nc6 { [%clk 0:04:50] } 3. Qh5 { [%clk 0:04:54.2] } 3... Nf6 { [%clk 0:04:45] } 4. Qxf7# { [%clk 0:04:52.8] } 1-0",
+   "end_time": 1750172800,
+   "rated": true,
+   "time_class": "blitz",
+   "rules": "chess960",
+   "time_control": "300",
+   "white": {
+    "username": "Snoopy",
+    "rating": 900,
+    "result": "win"
+   },
+   "black": {
+    "username": "fischerfan",
+    "rating": 905,
+    "result": "timeout"
+   }
+  },
+  {
+   "uuid": "uuid-d",
+   "url": "https://www.chess.com/game/live/uuid-d",
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"Snoopy\"]\n[Black \"drawish\"]\n[Result \"1/2-1/2\"]\n[ECO \"A05\"]\n[ECOUrl \"https://www.chess.com/openings/Reti-Opening\"]\n[TimeControl \"300\"]\n\n1. Nf3 { [%clk 0:04:59] } 1... Nf6 { [%clk 0:04:59] } 2. g3 { [%clk 0:04:58] } 2... g6 { [%clk 0:04:58] } 1/2-1/2",
+   "end_time": 1750259200,
+   "rated": true,
+   "time_class": "blitz",
+   "rules": "chess",
+   "time_control": "300",
+   "white": {
+    "username": "Snoopy",
+    "rating": 1510,
+    "result": "agreed"
+   },
+   "black": {
+    "username": "drawish",
+    "rating": 1520,
+    "result": "agreed"
+   }
+  }
+ ]
+}
