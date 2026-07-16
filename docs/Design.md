@@ -368,8 +368,16 @@ All tunables live in one module (`BLUNDER_WP_DROP = 20`, `MISTAKE_WP_DROP =
 `BOOK_PLY_CUTOFF = 10`, `OPENING_LEAK_MIN_GAMES = 3`,
 `PUNISH_CAPTURE_FRACTION = 0.5`, `CLOCK_COMFORTABLE_MIN_S = 60`,
 `CLOCK_SCRAMBLE_MAX_S = 20`, `NEW_PUZZLES_PER_DAY = 10`, `TAG_MAX_ATTEMPTS =
-3`). They are defensible defaults, expected to move during calibration, and
-nowhere else in the code.
+3`, `PHASE_OPENING_MAX_PLY = 20`, `PHASE_ENDGAME_MAX_PIECES = 6`,
+`ENGINE_MOVETIME_MS_DEFAULT = 100`, `SM2_CLEAN_LATENCY_MS = 30000`,
+`SM2_LAPSE_EASE_PENALTY = 0.2`, `SM2_MIN_EASE = 1.3`). They are defensible
+defaults, expected to move during calibration, and nowhere else in the code.
+
+Build-time constant notes (§10 log):
+- Phase classification and SM-2 grading thresholds joined the module during
+  the build (steps 3 and 5 prep) — same calibration rules apply.
+- Stack note: Python 3.13 (no 3.12 on the dev machine; Django 5.2 LTS
+  supports 3.13).
 
 ## 11. Stack
 
