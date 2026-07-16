@@ -27,4 +27,5 @@ CLOCK_SCRAMBLE_MAX_S = 20
 PHASE_OPENING_MAX_PLY = 20    # phase classification (context, not gating)
 PHASE_ENDGAME_MAX_PIECES = 6  # non-pawn, non-king pieces on the board
 NEW_PUZZLES_PER_DAY = 10      # serving: cap on newly introduced puzzles
+ENGINE_MOVETIME_MS_DEFAULT = 100  # --movetime default; recorded per game
 TAG_MAX_ATTEMPTS = 3          # tag stage three-strikes (poison-pill defence)
