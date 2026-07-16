@@ -1,112 +1,33 @@
 """
-Chess trainer — core data model.
+Puzzle extraction core (Design.md §4–6).
 
-Design notes baked into this schema:
+Schema invariants (from the design review — see docs/Design.md §6):
 - A Puzzle is identified by its normalized position (position_key) alone,
   NOT by game and NOT by solution set (solutions are a deterministic
   function of the position given an engine regime; keying on them would let
   engine noise mint near-duplicates). The same mistake made in five games is
-  ONE puzzle with five Occurrences — the occurrence count drives "ones I do
+  ONE puzzle with N Occurrences — the occurrence count drives "ones I do
   often". Solutions freeze at first analysis; deeper re-analysis may
   overwrite engine facts, occurrences always accumulate.
 - Every gate-evaluated moment persists as a Candidate row, puzzle or not —
   recalibration is a query over Candidates (both tightening AND loosening),
   rejected moments feed stats, and opening-leak promotion counts over them.
-- ALL stored win% values are from the USER's perspective, always. Flip
-  side-to-move engine scores when the opponent moves; mate scores clamp to
-  100/0 (they are not centipawns — the sigmoid never sees them).
+- ALL stored win% values are from the USER's perspective, always (see
+  puzzles/pipeline/evals.py — the only conversion point).
 - Engine facts (win% before, solution set) live on Puzzle; per-game facts
   (what you played, the clock, which game) live on Occurrence.
 - Motif tags carry provenance (rule vs LLM) and verification status, so the
   propose-verify tagging step is visible in the data, not just the pipeline.
 - Scheduling (SM-2) lives on Puzzle for single-user simplicity. If this ever
-  goes multi-user, extract those five fields into a ReviewState(user, puzzle)
+  goes multi-user, extract those fields into a ReviewState(user, puzzle)
   model — nothing else changes.
-- Portable across SQLite (dev) and Postgres (Lightsail): JSONField everywhere,
-  no ArrayField.
+- Portable across SQLite (dev) and Postgres (Lightsail): JSONField
+  everywhere, no ArrayField.
 """
 
 from django.db import models
 
-
-# ---------------------------------------------------------------------------
-# Tunable constants — the "design constants" from the filter spec.
-# Keep them here (or a constants.py) so calibration is a one-file affair.
-# ---------------------------------------------------------------------------
-
-BLUNDER_WP_DROP = 20.0        # win-percentage-point drop => blunder
-MISTAKE_WP_DROP = 10.0        # 10–20pp => mistake
-SALVAGEABLE_WP_MIN = 25.0     # Gate 1: position must have been worth saving
-UNIQUENESS_GAP_WP = 10.0      # Gate 3: best vs best-non-solution
-SOLUTION_BAND_WP = 5.0        # moves within this of best join solution set
-MAX_SOLUTIONS = 2             # more than this => not a puzzle
-SHALLOW_DEPTH = 10            # Gate 2: findability check depth
-MULTIPV = 3                   # Gate 3: candidate probe needs top-N moves
-CASHOUT_MAX_PLIES = 6         # Gate 2: gain must materialise within this
-MATE_MAX_MOVES = 4            # Gate 2: mates must cash out within this
-TRIVIAL_MAX_LEGAL_MOVES = 2   # Gate 4: fewer legal moves than this => trivial
-BOOK_PLY_CUTOFF = 10          # Gate 4: opening exclusion...
-OPENING_LEAK_MIN_GAMES = 3    # ...unless recurring (distinct games, via
-                              #    Candidate rows) => opening-leak puzzle
-# PUNISH: puzzle exists only if the user's played reply realised LESS than
-# this fraction of the win% the opponent's error handed over. (>= fraction
-# means they punished adequately — nothing to train.)
-PUNISH_CAPTURE_FRACTION = 0.5
-CLOCK_COMFORTABLE_MIN_S = 60  # clock buckets (Occurrence.ClockBucket)
-CLOCK_SCRAMBLE_MAX_S = 20
-NEW_PUZZLES_PER_DAY = 10      # serving: cap on newly introduced puzzles
-TAG_MAX_ATTEMPTS = 3          # tag stage three-strikes (poison-pill defence)
-
-
-class TimeClass(models.TextChoices):
-    BULLET = "bullet"
-    BLITZ = "blitz"
-    RAPID = "rapid"
-    DAILY = "daily"
-
-
-class Game(models.Model):
-    """One chess.com game, plus the engine-analysis bookkeeping for it."""
-
-    # Identity / provenance
-    chesscom_uuid = models.CharField(max_length=64, unique=True)
-    url = models.URLField()
-    pgn = models.TextField()
-    end_time = models.DateTimeField(db_index=True)
-
-    # Game facts
-    time_class = models.CharField(max_length=10, choices=TimeClass.choices)
-    time_control = models.CharField(max_length=20)          # e.g. "600+5"
-    rated = models.BooleanField(default=True)
-    user_color = models.CharField(max_length=5)             # "white"/"black"
-    user_rating = models.PositiveIntegerField()
-    opponent_username = models.CharField(max_length=50)     # shown in serving
-    opponent_rating = models.PositiveIntegerField()
-    result = models.CharField(max_length=10)                # "win"/"loss"/"draw"
-    eco = models.CharField(max_length=3, blank=True)        # e.g. "C50"
-    opening_name = models.CharField(max_length=120, blank=True)
-
-    # Analysis bookkeeping — reproducibility matters when you re-tune constants
-    class AnalysisStatus(models.TextChoices):
-        PENDING = "pending"
-        ANALYZED = "analyzed"
-        FAILED = "failed"
-
-    analysis_status = models.CharField(
-        max_length=10, choices=AnalysisStatus.choices,
-        default=AnalysisStatus.PENDING, db_index=True,
-    )
-    engine_version = models.CharField(max_length=40, blank=True)   # "stockfish 16.1"
-    engine_movetime_ms = models.PositiveIntegerField(null=True, blank=True)
-    pipeline_version = models.CharField(max_length=20, blank=True) # your extractor version
-    ingested_at = models.DateTimeField(auto_now_add=True)
-    analyzed_at = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        ordering = ["-end_time"]
-
-    def __str__(self):
-        return f"{self.end_time:%Y-%m-%d} vs {self.opponent_rating} ({self.result})"
+from games.models import Game
 
 
 class MotifTag(models.Model):
@@ -167,7 +88,13 @@ class Candidate(models.Model):
                                related_name="candidates")
 
     class Meta:
-        unique_together = [("game", "ply")]
+        constraints = [
+            models.UniqueConstraint(fields=["game", "ply"],
+                                    name="unique_candidate_per_game_ply"),
+        ]
+
+    def __str__(self):
+        return f"g{self.game_id} ply {self.ply} ({self.verdict})"
 
 
 class Puzzle(models.Model):
@@ -183,13 +110,16 @@ class Puzzle(models.Model):
         ALLOWED = "allowed"         # you enabled a tactic against yourself
         MISCOUNTED = "miscounted"   # capture sequence came out negative
 
+    class Phase(models.TextChoices):
+        OPENING = "opening"
+        MIDDLEGAME = "middlegame"
+        ENDGAME = "endgame"
+
     # Identity
     fen = models.CharField(max_length=100)
-    # Normalised dedup key: piece placement + side to move + castling + ep
-    # (i.e. FEN minus the move counters), hashed for a compact unique index.
-    # Normalise ep too: keep the ep square only when a legal ep capture
-    # exists (board.epd(en_passant="legal")-style) — a vestigial ep square
-    # after any double push makes identical positions hash differently.
+    # Normalised dedup key from puzzles/pipeline/positions.py: piece
+    # placement + side to move + castling + legal-only ep, counters stripped,
+    # hashed for a compact unique index.
     position_key = models.CharField(max_length=64, unique=True)
 
     # On collision (same position, both types across games): PUNISH wins.
@@ -201,14 +131,15 @@ class Puzzle(models.Model):
     win_pct_before = models.FloatField()      # user's win% if best is played
     solutions = models.JSONField()
     #   Each accepted solution carries ITS OWN principal variation — a user
-    #   opening with solution #2 still needs a line to play out (<= MAX_SOLUTIONS):
+    #   opening with solution #2 still needs a line to play out
+    #   (<= MAX_SOLUTIONS entries):
     #   [{"uci": "e4f6", "san": "Nxf6+", "win_pct": 78.2,
     #     "pv_uci": ["e4f6", "g7f6", "d1h5"]}, ...]
     #   Move checking compares UCI; SAN is display-only.
     uniqueness_gap_wp = models.FloatField()   # Gate 3 margin, kept for re-filtering
     shallow_depth_stable = models.BooleanField()       # Gate 2 evidence...
     shallow_depth_used = models.PositiveSmallIntegerField()  # ...and its probe depth
-    cashout_plies = models.PositiveSmallIntegerField() # Gate 2 evidence
+    cashout_plies = models.PositiveSmallIntegerField()  # Gate 2 evidence
     mate_in = models.PositiveSmallIntegerField(null=True, blank=True)
 
     # Engine provenance — the regime that produced the facts above (Game
@@ -218,13 +149,10 @@ class Puzzle(models.Model):
     engine_movetime_ms = models.PositiveIntegerField(null=True, blank=True)
 
     # Classification / display
-    phase = models.CharField(
-        max_length=10,
-        choices=[("opening", "opening"), ("middlegame", "middlegame"),
-                 ("endgame", "endgame")],
-    )
+    phase = models.CharField(max_length=10, choices=Phase.choices)
     is_opening_leak = models.BooleanField(default=False)
-    quality_score = models.FloatField(db_index=True)   # ranking, not gating
+    quality_score = models.FloatField(db_index=True)   # ranking, not gating;
+    #   recomputed whenever an occurrence is added (swing = max over occurrences)
     motifs = models.ManyToManyField(MotifTag, through="PuzzleMotif", blank=True)
 
     # LLM enrichment (nullable — app must work without it). tagged_at covers
@@ -254,14 +182,14 @@ class Puzzle(models.Model):
             models.Index(fields=["due_at", "-quality_score"]),  # the serving query
         ]
 
+    def __str__(self):
+        return f"{self.get_puzzle_type_display()} [{self.phase}] q={self.quality_score:.2f}"
+
     @property
     def occurrence_count(self):
         # Recurrence = distinct GAMES — repetitions within one game (e.g.
         # threefold shuffling) must not inflate it.
         return self.occurrences.values("game").distinct().count()
-
-    def __str__(self):
-        return f"{self.get_puzzle_type_display()} [{self.phase}] q={self.quality_score:.2f}"
 
 
 class Occurrence(models.Model):
@@ -280,14 +208,21 @@ class Occurrence(models.Model):
     played_uci = models.CharField(max_length=6)       # what you actually did
     played_san = models.CharField(max_length=10)
     # User-perspective (raw engine score here is side-to-move = OPPONENT
-    # after your move — must be flipped at the boundary or wp_drop is garbage)
+    # after your move — flipped at the evals.py boundary, never here)
     win_pct_after_played = models.FloatField()        # => wp drop is derivable
     clock_seconds = models.FloatField(null=True, blank=True)
+    # "" = unknown (no %clk in the PGN) — absence is handled, never fabricated
     clock_bucket = models.CharField(max_length=12, choices=ClockBucket.choices,
-                                    null=True, blank=True)
+                                    blank=True, default="")
 
     class Meta:
-        unique_together = [("game", "ply")]
+        constraints = [
+            models.UniqueConstraint(fields=["game", "ply"],
+                                    name="unique_occurrence_per_game_ply"),
+        ]
+
+    def __str__(self):
+        return f"puzzle {self.puzzle_id} in g{self.game_id} ply {self.ply}"
 
     @property
     def wp_drop(self):
@@ -311,83 +246,10 @@ class PuzzleMotif(models.Model):
     # exists — contradicted proposals are dropped, not stored (invariant).
 
     class Meta:
-        unique_together = [("puzzle", "tag")]
+        constraints = [
+            models.UniqueConstraint(fields=["puzzle", "tag"],
+                                    name="unique_motif_per_puzzle"),
+        ]
 
-
-class Attempt(models.Model):
-    """
-    One training attempt at one puzzle — the whole line, not one move
-    (serving is stateless: the client resubmits the full move list, the
-    server replays it from the FEN). Feeds SM-2 and all dashboards.
-    """
-
-    puzzle = models.ForeignKey(Puzzle, on_delete=models.CASCADE,
-                               related_name="attempts")
-    moves = models.JSONField(default=list)
-    #   The user's moves in order, with per-move verdicts — this is also the
-    #   near-miss log that decides whether the tolerance band ever ships:
-    #   [{"uci": "e4f6", "verdict": "solution" | "pv" | "near_miss" | "wrong"}, ...]
-    correct = models.BooleanField()
-    failed_at_ply = models.PositiveSmallIntegerField(null=True, blank=True)
-    latency_ms = models.PositiveIntegerField(null=True, blank=True)
-    hints_used = models.PositiveSmallIntegerField(default=0)  # 0–2 (two-stage)
-    grade = models.PositiveSmallIntegerField()  # derived SM-2 quality 0–5,
-    #   stored so scheduling decisions are auditable after the fact
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-
-class WeaknessSnapshot(models.Model):
-    """
-    Nightly per-motif rollup so the dashboard can show trends over time
-    without recomputing history. Everything here is derivable from
-    Occurrence/Attempt — this is a cache, and can be rebuilt from scratch.
-    """
-    date = models.DateField()
-    tag = models.ForeignKey(MotifTag, on_delete=models.CASCADE)
-    # From your GAMES (are you still making this mistake?)
-    occurrences_in_window = models.PositiveIntegerField()   # e.g. trailing 30d
-    games_in_window = models.PositiveIntegerField()
-    # From your TRAINING (are you solving it when drilled?)
-    attempts = models.PositiveIntegerField()
-    correct = models.PositiveIntegerField()
-
-    class Meta:
-        unique_together = [("date", "tag")]
-
-
-class PipelineRun(models.Model):
-    """One row per stage per run — the pipeline-health page's data source."""
-
-    class Status(models.TextChoices):
-        RUNNING = "running"
-        SUCCEEDED = "succeeded"
-        FAILED = "failed"
-
-    stage = models.CharField(max_length=20)   # "ingest"/"analyze"/"tag"/"snapshot"
-    status = models.CharField(max_length=10, choices=Status.choices,
-                              default=Status.RUNNING)
-    started_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    finished_at = models.DateTimeField(null=True, blank=True)
-    counts = models.JSONField(default=dict)   # e.g. {"games": 12, "puzzles": 31,
-                                              #       "tag_skipped": 1}
-    error_text = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ["-started_at"]
-
-
-class Report(models.Model):
-    """An unfair-puzzle flag from the train UI — the post-launch calibration
-    signal (the ongoing version of the step-4 eyeball session)."""
-
-    puzzle = models.ForeignKey(Puzzle, on_delete=models.CASCADE,
-                               related_name="reports")
-    note = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    resolved_at = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        ordering = ["-created_at"]
+    def __str__(self):
+        return f"{self.tag} on puzzle {self.puzzle_id} ({self.source})"

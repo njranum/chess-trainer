@@ -1,0 +1,14 @@
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
+markers = [
+    "engine: needs a real Stockfish binary (STOCKFISH_PATH); excluded from plain unit runs",
+]
+
+[tool.ruff]
+line-length = 99
+target-version = "py313"
+exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "DJ"]

@@ -1,0 +1,9 @@
+Django>=5.2,<6
+chess>=1.11
+python-dotenv>=1.0
+psycopg[binary]>=3.2; sys_platform == "linux"  # Postgres driver, prod only
+
+# dev / test
+pytest>=8
+pytest-django>=4.9
+ruff>=0.8
