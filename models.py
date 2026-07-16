@@ -28,7 +28,6 @@ Design notes baked into this schema:
 
 from django.db import models
 
-
 # ---------------------------------------------------------------------------
 # Tunable constants — the "design constants" from the filter spec.
 # Keep them here (or a constants.py) so calibration is a one-file affair.
