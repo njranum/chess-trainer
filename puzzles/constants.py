@@ -24,5 +24,7 @@ OPENING_LEAK_MIN_GAMES = 3    # ...unless recurring (distinct games, via
 PUNISH_CAPTURE_FRACTION = 0.5
 CLOCK_COMFORTABLE_MIN_S = 60  # clock buckets (Occurrence.ClockBucket)
 CLOCK_SCRAMBLE_MAX_S = 20
+PHASE_OPENING_MAX_PLY = 20    # phase classification (context, not gating)
+PHASE_ENDGAME_MAX_PIECES = 6  # non-pawn, non-king pieces on the board
 NEW_PUZZLES_PER_DAY = 10      # serving: cap on newly introduced puzzles
 TAG_MAX_ATTEMPTS = 3          # tag stage three-strikes (poison-pill defence)
