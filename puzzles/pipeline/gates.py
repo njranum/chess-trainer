@@ -27,10 +27,8 @@ from puzzles.constants import (
     TRIVIAL_MAX_LEGAL_MOVES,
     UNIQUENESS_GAP_WP,
 )
+from puzzles.pipeline.material import material_balance
 from puzzles.pipeline.sweep import CandidateMoment
-
-PIECE_VALUES = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3,
-                chess.ROOK: 5, chess.QUEEN: 9, chess.KING: 0}
 
 # How much of each solution's PV to persist: enough for serving (≤ 3 user
 # moves ⇒ ≤ 6 plies) plus context either side.
@@ -136,20 +134,12 @@ def _material_cashout(board: chess.Board, pv: list[chess.Move],
     """First PV ply (1-based) where the user's material balance improves,
     within CASHOUT_MAX_PLIES. None = the gain never materialises."""
     working = board.copy()
-    start = _material_balance(working, user_color)
+    start = material_balance(working, user_color)
     for ply, move in enumerate(pv[:CASHOUT_MAX_PLIES], start=1):
         working.push(move)
-        if _material_balance(working, user_color) - start >= 1:
+        if material_balance(working, user_color) - start >= 1:
             return ply
     return None
-
-
-def _material_balance(board: chess.Board, user_color: chess.Color) -> int:
-    balance = 0
-    for piece in board.piece_map().values():
-        value = PIECE_VALUES[piece.piece_type]
-        balance += value if piece.color == user_color else -value
-    return balance
 
 
 def _solution_json(board: chess.Board, move_eval) -> dict:
