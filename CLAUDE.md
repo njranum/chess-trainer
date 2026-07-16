@@ -18,7 +18,7 @@ Design complete; build follows docs/Design.md §9 order:
        `models.py` now lives split across the apps listed under Conventions
        below, comments intact)
 2. [x] `ingest` command
-3. [ ] `analyze` command (gates + Tier-1 motif detectors)
+3. [x] `analyze` command (gates + Tier-1 motif detectors)
 4. [ ] **Calibration checkpoint** — 50 random puzzles on a static page,
        tune constants. Do NOT build past this until puzzles feel fair.
 5. [ ] Train widget + SM-2
