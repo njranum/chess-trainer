@@ -8,9 +8,7 @@ markers = [
 [tool.ruff]
 line-length = 99
 target-version = "py313"
-# models.py: the designed-schema starting point — split across apps and
-# deleted in M1-04..M1-06, so not linted as live code.
-exclude = ["**/migrations/*", "models.py"]
+exclude = ["**/migrations/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "DJ"]
