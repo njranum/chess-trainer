@@ -42,6 +42,8 @@ class CandidateMoment:
     phase: str                  # "opening" | "middlegame" | "endgame"
     clock_seconds: float | None
     position_eval: PositionEval  # sweep eval of fen_before (pv reused by gates)
+    last_capture_square: chess.Square | None = None  # opponent just captured
+    #   here → gate 4's forced-recapture check
 
 
 def sweep_game(pgn: str, user_color: chess.Color, engine,
@@ -85,6 +87,10 @@ def sweep_game(pgn: str, user_color: chess.Color, engine,
         if candidate_type is None:
             continue
 
+        last_capture = None
+        if i >= 1 and boards[i - 1].is_capture(moves[i - 1]):
+            last_capture = moves[i - 1].to_square
+
         candidates.append(CandidateMoment(
             ply=ply,
             fen_before=boards[i].fen(),
@@ -96,6 +102,7 @@ def sweep_game(pgn: str, user_color: chess.Color, engine,
             phase=classify_phase(boards[i], ply),
             clock_seconds=clocks.get(ply),
             position_eval=evals[i],
+            last_capture_square=last_capture,
         ))
     return candidates
 
