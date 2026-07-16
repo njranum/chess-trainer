@@ -17,7 +17,7 @@ Design complete; build follows docs/Design.md §9 order:
 1. [x] Models + migrations + admin  (the designed schema from the old root
        `models.py` now lives split across the apps listed under Conventions
        below, comments intact)
-2. [ ] `ingest` command
+2. [x] `ingest` command
 3. [ ] `analyze` command (gates + Tier-1 motif detectors)
 4. [ ] **Calibration checkpoint** — 50 random puzzles on a static page,
        tune constants. Do NOT build past this until puzzles feel fair.
