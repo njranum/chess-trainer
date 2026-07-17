@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Pipeline health — Chess Trainer{% endblock %}
+{% block content %}
+<h1>Pipeline health</h1>
+<div class="stat-row">
+  <div class="stat"><span class="stat-num">{{ total_games }}</span> games</div>
+  <div class="stat"><span class="stat-num">{{ status_counts.analyzed|default:0 }}</span> analyzed</div>
+  <div class="stat"><span class="stat-num">{{ status_counts.pending|default:0 }}</span> pending</div>
+  <div class="stat"><span class="stat-num">{{ status_counts.failed|default:0 }}</span> failed</div>
+</div>
+
+<h2>Recent runs</h2>
+<table class="data-table">
+  <thead><tr><th>Stage</th><th>Status</th><th>Started</th><th>Finished</th><th>Counts</th></tr></thead>
+  <tbody>
+    {% for run in runs %}
+    <tr class="{% if run.status == 'failed' %}row-failed{% endif %}">
+      <td>{{ run.stage }}</td>
+      <td>{{ run.status }}</td>
+      <td>{{ run.started_at|date:"d M H:i" }}</td>
+      <td>{{ run.finished_at|date:"d M H:i"|default:"—" }}</td>
+      <td><code>{{ run.counts }}</code></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">No pipeline runs recorded yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if failed_games %}
+<h2>Failed games (three strikes stays failed)</h2>
+<table class="data-table">
+  <thead><tr><th>Game</th><th>Failures</th><th>Error</th></tr></thead>
+  <tbody>
+    {% for game in failed_games %}
+    <tr class="row-failed">
+      <td><a href="{{ game.url }}">{{ game }}</a></td>
+      <td>{{ game.analysis_failures }}</td>
+      <td><code>{{ game.analysis_error|truncatechars:140 }}</code></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

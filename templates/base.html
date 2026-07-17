@@ -12,6 +12,10 @@
 <body>
   <nav>
     <a href="/train/">Train</a>
+    <a href="/dashboard/">Dashboard</a>
+    <a href="/openings/">Openings</a>
+    <a href="/puzzles/">Puzzles</a>
+    <a href="/games/">Games</a>
     {% if user.is_authenticated %}
     <form method="post" action="{% url 'logout' %}" class="logout">
       {% csrf_token %}<button type="submit">Log out</button>

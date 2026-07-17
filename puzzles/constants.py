@@ -30,6 +30,7 @@ NEW_PUZZLES_PER_DAY = 10      # serving: cap on newly introduced puzzles
 ENGINE_MOVETIME_MS_DEFAULT = 100  # --movetime default; recorded per game
 SM2_CLEAN_LATENCY_MS = 30_000  # solved faster than this, no hints => grade 5
 BURY_DAYS = 30                 # "bury" hides a puzzle this long, stats untouched
+SNAPSHOT_WINDOW_DAYS = 30      # trailing window for WeaknessSnapshot rollups
 MAX_USER_MOVES = 3             # serving: a line asks at most this many moves
 SM2_LAPSE_EASE_PENALTY = 0.2   # fail: ease factor drops by this...
 SM2_MIN_EASE = 1.3             # ...but never below this floor

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Opening leaks — Chess Trainer{% endblock %}
+{% block content %}
+<h1>Opening leaks</h1>
+<p class="hint-text">Exact positions you keep reaching and keep misplaying —
+book exclusion overridden by recurrence (≥ 3 games).</p>
+<table class="data-table">
+  <thead>
+    <tr><th>Opening</th><th>ECO</th><th>Times reached</th><th>Avg wp lost</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for leak in leaks %}
+    <tr>
+      <td>{{ leak.opening_name|default:"—" }}</td>
+      <td>{{ leak.eco|default:"—" }}</td>
+      <td>{{ leak.times_reached }}</td>
+      <td>{{ leak.avg_drop|floatformat:1 }}</td>
+      <td><a href="/admin/puzzles/puzzle/{{ leak.puzzle.pk }}/change/">detail</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">No opening leaks yet — they need the same book
+    position misplayed in three games, which usually takes the full-history
+    backfill.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

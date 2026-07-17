@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard — Chess Trainer{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="stat-row">
+  <div class="stat"><span class="stat-num">{{ due_count }}</span> due</div>
+  <div class="stat"><span class="stat-num">{{ streak }}</span> day streak</div>
+  <div class="stat"><span class="stat-num">{{ attempts_today }}</span> attempts today</div>
+</div>
+
+<h2>Weakness profile — trailing {{ window_days }} days</h2>
+<p class="hint-text">The gap to watch: a motif you keep committing in games
+(left) but solve reliably when drilled (right) hasn't transferred yet.</p>
+<table class="data-table">
+  <thead>
+    <tr><th>Motif</th><th>In your games</th><th>Drilled</th><th>Solve rate</th></tr>
+  </thead>
+  <tbody>
+    {% for row in motif_rows %}
+    <tr>
+      <td>{{ row.tag.name }}</td>
+      <td>{{ row.occurrences }}</td>
+      <td>{{ row.attempts }}</td>
+      <td>{% if row.solve_rate is not None %}{{ row.solve_rate }}%{% else %}—{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">No data yet — play, analyze, train.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Trends</h2>
+<p class="hint-text">Built from nightly snapshots — run
+<code>manage.py snapshot</code> to add today's point.</p>
+<div class="chart-wrap"><canvas id="occurrences-chart"></canvas></div>
+<div class="chart-wrap"><canvas id="solve-chart"></canvas></div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chart.umd.js' %}"></script>
+<script>
+fetch("/dashboard/trends.json").then(r => r.json()).then(data => {
+  if (!data.dates.length) return;
+  new Chart(document.getElementById("occurrences-chart"), {
+    type: "line",
+    data: { labels: data.dates, datasets: data.occurrences },
+    options: { plugins: { title: { display: true,
+      text: "Mistakes in games, per motif (trailing window)" } } },
+  });
+  new Chart(document.getElementById("solve-chart"), {
+    type: "line",
+    data: { labels: data.dates,
+            datasets: [{ label: "Training solve rate %", data: data.solve_rate }] },
+    options: { scales: { y: { min: 0, max: 100 } } },
+  });
+});
+</script>
+{% endblock %}
