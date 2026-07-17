@@ -26,6 +26,6 @@ def claude_headless(prompt: str) -> str:
         cwd=tempfile.gettempdir(),
     )
     if result.returncode != 0:
-        raise RuntimeError(f"claude -p failed ({result.returncode}): "
-                           f"{result.stderr[:500]}")
+        detail = (result.stderr.strip() or result.stdout.strip())[:500]
+        raise RuntimeError(f"claude -p failed ({result.returncode}): {detail}")
     return result.stdout
