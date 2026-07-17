@@ -46,3 +46,24 @@ main { max-width: 62rem; margin: 1.5rem auto; padding: 0 1rem; }
   padding: .1rem .6rem; margin: 0 .3rem .3rem 0; font-size: .85rem;
 }
 .done { text-align: center; margin-top: 4rem; color: #555; }
+
+/* Read pages */
+.stat-row { display: flex; gap: 1rem; margin: 1rem 0 2rem; flex-wrap: wrap; }
+.stat {
+  background: #fff; border: 1px solid #ddd; border-radius: 8px;
+  padding: .8rem 1.4rem; color: #555;
+}
+.stat-num { font-size: 1.6rem; font-weight: 700; color: #222; margin-right: .3rem; }
+.data-table { border-collapse: collapse; width: 100%; background: #fff; }
+.data-table th, .data-table td {
+  border: 1px solid #e2e2e2; padding: .45rem .7rem; text-align: left;
+  font-size: .92rem;
+}
+.data-table th { background: #f3f3f3; }
+.row-failed { background: #fce8e6; }
+.filter-bar { margin-bottom: 1rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+.filter-bar select, .filter-bar button { padding: .35rem .5rem; }
+.pagination { margin: 1rem 0; color: #555; display: flex; gap: 1rem; }
+.chart-wrap { background: #fff; border: 1px solid #ddd; border-radius: 8px;
+              padding: 1rem; margin-bottom: 1.5rem; max-width: 56rem; }
+.hint-text { color: #666; font-size: .92rem; }

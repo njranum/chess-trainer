@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Puzzles — Chess Trainer{% endblock %}
+{% block content %}
+<h1>Puzzle archive</h1>
+<form method="get" class="filter-bar">
+  <select name="type">
+    <option value="">any type</option>
+    <option value="avoid" {% if current.type == "avoid" %}selected{% endif %}>avoid</option>
+    <option value="punish" {% if current.type == "punish" %}selected{% endif %}>punish</option>
+  </select>
+  <select name="phase">
+    <option value="">any phase</option>
+    <option value="opening" {% if current.phase == "opening" %}selected{% endif %}>opening</option>
+    <option value="middlegame" {% if current.phase == "middlegame" %}selected{% endif %}>middlegame</option>
+    <option value="endgame" {% if current.phase == "endgame" %}selected{% endif %}>endgame</option>
+  </select>
+  <select name="motif">
+    <option value="">any motif</option>
+    {% for tag in motif_tags %}
+    <option value="{{ tag.slug }}" {% if current.motif == tag.slug %}selected{% endif %}>{{ tag.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="clock">
+    <option value="">any clock</option>
+    {% for bucket in clock_buckets %}
+    <option value="{{ bucket }}" {% if current.clock == bucket %}selected{% endif %}>{{ bucket }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+<table class="data-table">
+  <thead>
+    <tr><th>#</th><th>Type</th><th>Phase</th><th>Motifs</th><th>Games</th>
+        <th>Attempts</th><th>Quality</th><th>Due</th></tr>
+  </thead>
+  <tbody>
+    {% for puzzle in page %}
+    <tr>
+      <td><a href="/admin/puzzles/puzzle/{{ puzzle.pk }}/change/">{{ puzzle.pk }}</a></td>
+      <td>{{ puzzle.puzzle_type }}{% if puzzle.is_opening_leak %} · leak{% endif %}</td>
+      <td>{{ puzzle.phase }}</td>
+      <td>{% for tag in puzzle.motifs.all %}<span class="motif-tag">{{ tag.name }}</span>{% endfor %}</td>
+      <td>{{ puzzle.games }}</td>
+      <td>{{ puzzle.attempt_count }}</td>
+      <td>{{ puzzle.quality_score|floatformat:4 }}</td>
+      <td>{{ puzzle.due_at|date:"d M"|default:"new" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8">Nothing matches.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="pagination">
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">‹ prev</a>{% endif %}
+  page {{ page.number }} / {{ page.paginator.num_pages }}
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}">next ›</a>{% endif %}
+</div>
+{% endblock %}
