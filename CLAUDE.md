@@ -24,9 +24,11 @@ Design complete; build follows docs/Design.md §9 order:
        before the full-history backfill.
 5. [x] Train widget + SM-2
 6. [x] Dashboards + `snapshot`
-7. [ ] LLM tagging (optional by construction — app must be complete without it)
+7. [x] LLM tagging (optional by construction — app must be complete without it)
 
-Update these checkboxes as steps land.
+All seven build steps are done. Remaining tracked work: M8 (Lightsail
+deploy + cron wiring) and the full-history backfill with a pre-backfill
+knob review — see docs/action-items.csv.
 
 ## Hard invariants (violating these = wrong, even if tests pass)
 
