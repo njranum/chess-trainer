@@ -19,8 +19,9 @@ Design complete; build follows docs/Design.md §9 order:
        below, comments intact)
 2. [x] `ingest` command
 3. [x] `analyze` command (gates + Tier-1 motif detectors)
-4. [ ] **Calibration checkpoint** — 50 random puzzles on a static page,
-       tune constants. Do NOT build past this until puzzles feel fair.
+4. [x] **Calibration checkpoint** — passed 2026-07-17 on a one-month sample
+       (see Design.md §10 log); constants unchanged, knobs to be revisited
+       before the full-history backfill.
 5. [ ] Train widget + SM-2
 6. [ ] Dashboards + `snapshot`
 7. [ ] LLM tagging (optional by construction — app must be complete without it)

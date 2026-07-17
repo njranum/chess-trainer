@@ -373,6 +373,16 @@ All tunables live in one module (`BLUNDER_WP_DROP = 20`, `MISTAKE_WP_DROP =
 `SM2_LAPSE_EASE_PENALTY = 0.2`, `SM2_MIN_EASE = 1.3`). They are defensible
 defaults, expected to move during calibration, and nowhere else in the code.
 
+Calibration log:
+- **2026-07-17 (checkpoint, one-month sample):** 161 July-2026 games →
+  605 candidates → 118 puzzles (0.73/game, low edge of the expected 1–3 —
+  blitz-heavy month, gate 3 culling hardest: 362 of 487 rejections).
+  Mix: 61 AVOID / 57 PUNISH across all phases; motifs led by hanging-piece
+  (40), fork (23), pin (16); 39 puzzles rule-untagged (Tier-2 headroom);
+  no opening leaks yet (expected — needs the full backfill for 3-game
+  recurrence). Eyeballed and accepted as-is; constants unchanged.
+  Revisit the knobs before the full-history backfill.
+
 Build-time constant notes (§10 log):
 - Phase classification and SM-2 grading thresholds joined the module during
   the build (steps 3 and 5 prep) — same calibration rules apply.
