@@ -1,0 +1,48 @@
+/* Minimal, server-rendered, no framework (Design.md §8). */
+* { box-sizing: border-box; }
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0; color: #222; background: #fafafa;
+}
+nav {
+  display: flex; gap: 1rem; align-items: center;
+  padding: .6rem 1.2rem; background: #2f2f2f;
+}
+nav a { color: #eee; text-decoration: none; font-weight: 600; }
+nav .logout { margin-left: auto; }
+nav button {
+  background: none; border: 1px solid #888; color: #ccc;
+  border-radius: 4px; padding: .2rem .6rem; cursor: pointer;
+}
+main { max-width: 62rem; margin: 1.5rem auto; padding: 0 1rem; }
+
+.login-box { max-width: 20rem; margin: 4rem auto; }
+.login-box label { display: block; margin-bottom: .8rem; }
+.login-box input { display: block; width: 100%; padding: .4rem; margin-top: .2rem; }
+.error { color: #b00020; }
+
+/* Train page */
+.train-layout { display: flex; gap: 2rem; flex-wrap: wrap; }
+.board-wrap { width: 480px; max-width: 92vw; }
+.board-wrap .cg-wrap { width: 100%; aspect-ratio: 1; }
+.side-panel { flex: 1; min-width: 18rem; }
+.context-block {
+  background: #fff; border: 1px solid #ddd; border-radius: 8px;
+  padding: 1rem; margin-bottom: 1rem;
+}
+.context-block .prompt { font-weight: 700; font-size: 1.1rem; }
+.context-block .meta { color: #555; margin-top: .5rem; font-size: .92rem; }
+.controls button {
+  margin-right: .5rem; padding: .45rem .9rem; border-radius: 6px;
+  border: 1px solid #bbb; background: #fff; cursor: pointer;
+}
+.controls button:hover { background: #f0f0f0; }
+.feedback { margin-top: 1rem; padding: 1rem; border-radius: 8px; display: none; }
+.feedback.success { display: block; background: #e6f4ea; border: 1px solid #34a853; }
+.feedback.failure { display: block; background: #fce8e6; border: 1px solid #ea4335; }
+.feedback .line { font-family: ui-monospace, monospace; margin: .5rem 0; }
+.motif-tag {
+  display: inline-block; background: #eee; border-radius: 999px;
+  padding: .1rem .6rem; margin: 0 .3rem .3rem 0; font-size: .85rem;
+}
+.done { text-align: center; margin-top: 4rem; color: #555; }

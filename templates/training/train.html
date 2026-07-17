@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Train — Chess Trainer{% endblock %}
+{% block content %}
+<div class="train-layout" id="train" hidden>
+  <div class="board-wrap"><div id="board"></div></div>
+  <div class="side-panel">
+    <div class="context-block">
+      <div class="prompt" id="prompt"></div>
+      <div class="meta" id="context"></div>
+      <div class="meta" id="due-count"></div>
+    </div>
+    <div class="controls">
+      <button id="hint">Hint</button>
+      <button id="bury" title="Skip for 30 days (stats untouched)">Bury</button>
+      <button id="report" title="Flag as unfair — feeds calibration">Report</button>
+    </div>
+    <div class="feedback" id="feedback">
+      <div id="feedback-title"></div>
+      <div class="line" id="feedback-line"></div>
+      <div id="feedback-motifs"></div>
+      <p id="feedback-explanation"></p>
+      <p id="feedback-game"></p>
+      <button id="next">Next puzzle</button>
+    </div>
+  </div>
+</div>
+<div class="done" id="done" hidden>
+  <h2>Done for today</h2>
+  <p>No puzzles due and the daily new-puzzle cap is reached. Come back tomorrow.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="{% static 'js/train.js' %}"></script>
+{% endblock %}
