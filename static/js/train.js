@@ -51,6 +51,7 @@ function setBoard(fen, orientation, movable) {
 async function loadNext() {
   const data = await api("/train/next");
   $("feedback").className = "feedback";
+  $("retry-note").hidden = true;
   if (data.done) {
     $("train").hidden = true;
     $("done").hidden = false;
@@ -91,10 +92,28 @@ async function onUserMove(orig, dest) {
   });
   if (result.status === "continue") {
     playReply(result.opponent_reply);
+  } else if (result.status === "failed") {
+    retryAfterWrong();
   } else {
     state.finished = true;
     showOutcome(result);
   }
+}
+
+function retryAfterWrong() {
+  // The lapse (if this was the graded try) is already recorded server-side.
+  // Signal the miss, take the move back, leave the puzzle open.
+  state.chess.undo();
+  state.moves.pop();
+  const note = $("retry-note");
+  note.hidden = false;
+  note.style.animation = "none";
+  requestAnimationFrame(() => { note.style.animation = ""; });
+  board.set({ fen: state.chess.fen(),
+              turnColor: state.puzzle.orientation,
+              movable: { free: false, color: state.puzzle.orientation,
+                         dests: dests(state.chess),
+                         events: { after: onUserMove } } });
 }
 
 function playReply(uci) {
@@ -109,10 +128,13 @@ function playReply(uci) {
 
 function showOutcome(result) {
   const solved = result.status === "solved";
+  $("retry-note").hidden = true;
   $("feedback").className = `feedback ${solved ? "success" : "failure"}`;
   $("feedback-title").innerHTML = solved
-    ? `<strong>Solved</strong> — grade ${result.grade}, next due ${result.next_due.slice(0, 10)}`
-    : "<strong>Not this time.</strong> The line was:";
+    ? (result.practice
+        ? "<strong>Solved</strong> (practice — already graded this round)"
+        : `<strong>Solved</strong> — grade ${result.grade}, next due ${result.next_due.slice(0, 10)}`)
+    : "<strong>The line was:</strong>";
   $("feedback-line").textContent = result.solution_line_san.join(" ");
   $("feedback-motifs").innerHTML = result.motifs
     .map((m) => `<span class="motif-tag">${m}</span>`).join("");
@@ -148,6 +170,18 @@ $("hint").addEventListener("click", () => {
     $("context").textContent =
       "Motifs: " + (motifs.length ? motifs.join(", ") : "no rule tags — trust the position");
   }
+});
+
+$("show-solution").addEventListener("click", async () => {
+  if (!state || state.finished) return;
+  const result = await api("/train/solution", {
+    puzzle_id: state.puzzle.puzzle_id,
+    hints_used: state.hintsUsed,
+    latency_ms: Date.now() - state.startedAt,
+  });
+  state.finished = true;
+  result.status = "revealed";
+  showOutcome(result);
 });
 
 $("bury").addEventListener("click", async () => {

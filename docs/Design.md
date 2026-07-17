@@ -314,9 +314,18 @@ module with unit tests — the one piece of logic whose bugs silently corrupt
 months of scheduling.
 
 **Hints: two-stage** (highlight the moving piece; then reveal the motif),
-priced into the grade. **No free retries:** fail → full line replay + the
-explanation + motif tags + link to the real game, attempt recorded, puzzle
-returns via SM-2. The fail screen is the product.
+priced into the grade. **Retries don't hide the miss:** the first terminal
+outcome of a serving cycle is what SM-2 grades — a wrong line records the
+lapse immediately, and revealing the solution before solving costs the
+same. After that the puzzle stays open for practice: wrong moves are
+signalled and taken back, not answered, and practice attempts touch
+nothing. Whether a submission grades or is practice is derived from DB
+state (is the puzzle currently new/due?), keeping the server stateless.
+The full reveal — line replay + explanation + motif tags + what you played
++ link to the real game — arrives on a solve, or on demand via **Show
+solution**. The reveal screen is the product. *(Amended 2026-07-17 from
+"no free retries → immediate reveal": the lapse-on-first-miss principle
+stands; only the reveal moved behind an explicit request.)*
 
 **Frontend: server-rendered Django + one widget. No SPA.** chessground
 (Lichess's board) + chess.js for instant client-side legality + ~150 lines of
