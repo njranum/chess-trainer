@@ -23,7 +23,7 @@ Design complete; build follows docs/Design.md §9 order:
        (see Design.md §10 log); constants unchanged, knobs to be revisited
        before the full-history backfill.
 5. [x] Train widget + SM-2
-6. [ ] Dashboards + `snapshot`
+6. [x] Dashboards + `snapshot`
 7. [ ] LLM tagging (optional by construction — app must be complete without it)
 
 Update these checkboxes as steps land.
