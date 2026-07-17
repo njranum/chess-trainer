@@ -171,12 +171,20 @@ def run_tag_stage(transport, model_name="claude-sonnet-5",
         ids = {p.pk for p in batch}
         try:
             entries = parse_response(transport(build_prompt(batch)), ids)
-        except (BatchInvalid, RuntimeError, subprocess.TimeoutExpired) as exc:
+        except BatchInvalid as exc:
+            # Content failure — the poison-pill case three-strikes exists for.
             counts["failed_batches"] += 1
             Puzzle.objects.filter(pk__in=ids).update(
                 tag_attempts=F("tag_attempts") + 1)
             counts.setdefault("last_error", str(exc)[:200])
             continue
+        except (RuntimeError, subprocess.TimeoutExpired) as exc:
+            # Transport failure (auth, rate limit, timeout) — not the
+            # puzzles' fault; no strike, stop the run and let the next cron
+            # tick retry the untouched queue.
+            counts["failed_batches"] += 1
+            counts["stopped_on_transport_error"] = str(exc)[:200]
+            break
         by_id = {e["puzzle_id"]: e for e in entries}
         for puzzle in batch:
             entry_counts = apply_entry(puzzle, by_id[puzzle.pk], model_name)

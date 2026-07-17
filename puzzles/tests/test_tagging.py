@@ -161,9 +161,14 @@ class TestThreeStrikes:
         assert counts["batches"] == 0
         assert counts["skipped_three_strikes"] == 1
 
-    def test_transport_exception_is_a_failed_batch(self, puzzle):
+    def test_transport_failure_stops_run_without_striking(self, puzzle):
+        # Rate limits and auth failures are not the puzzles' fault: no
+        # strike, run stops, the untouched queue retries next cron tick.
         def broken(prompt):
             raise RuntimeError("claude -p failed (1): no auth")
-        counts = run_tag_stage(broken, max_batches=1)
+        counts = run_tag_stage(broken)  # would loop forever if it didn't stop
         assert counts["failed_batches"] == 1
-        assert "no auth" in counts["last_error"]
+        assert "no auth" in counts["stopped_on_transport_error"]
+        puzzle.refresh_from_db()
+        assert puzzle.tag_attempts == 0
+        assert puzzle in tag_queue()
