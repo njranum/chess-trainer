@@ -106,25 +106,69 @@ class TestAttemptFlow:
                       "latency_ms": 8_000, "hints_used": 1}).json()
         assert final["grade"] == 3
 
-    def test_fail_is_the_product(self, client, user, puzzle):
+    def test_fail_signals_without_revealing(self, client, user, puzzle):
         data = post(client, "/train/attempt",
                     {"puzzle_id": puzzle.pk, "moves": ["g1f3"],
                      "latency_ms": 4_000}).json()
         assert data["status"] == "failed"
         assert data["failed_at_ply"] == 1
-        assert data["solution_line_san"] == ["exd5", "Qxd5", "Nc3"]
-        assert data["played_in_game"] == "a3"
-        assert data["game_url"] == "https://chess.com/game/v-1"
+        assert data["practice"] is False
+        assert "solution_line_san" not in data  # no reveal on a wrong move
 
         puzzle.refresh_from_db()
         assert puzzle.lapses == 1 and puzzle.repetitions == 0
         assert Attempt.objects.get().correct is False
+
+    def test_retry_after_fail_is_practice(self, client, user, puzzle):
+        post(client, "/train/attempt",
+             {"puzzle_id": puzzle.pk, "moves": ["g1f3"]})  # graded lapse
+        puzzle.refresh_from_db()
+        ease_after_lapse = puzzle.ease_factor
+
+        # Second wrong try: practice — nothing recorded, SM-2 untouched.
+        again = post(client, "/train/attempt",
+                     {"puzzle_id": puzzle.pk, "moves": ["b1c3"]}).json()
+        assert again["practice"] is True and "grade" not in again
+        assert Attempt.objects.count() == 1
+
+        # Practice solve: full reveal, still nothing recorded.
+        solved = post(client, "/train/attempt",
+                      {"puzzle_id": puzzle.pk,
+                       "moves": ["e4d5", "b1c3"]}).json()
+        assert solved["status"] == "solved" and solved["practice"] is True
+        assert solved["solution_line_san"] == ["exd5", "Qxd5", "Nc3"]
+        assert Attempt.objects.count() == 1
+        puzzle.refresh_from_db()
+        assert puzzle.ease_factor == ease_after_lapse
+        assert puzzle.repetitions == 0  # the lapse stands
 
     def test_illegal_move_is_rejected_and_unrecorded(self, client, user, puzzle):
         response = post(client, "/train/attempt",
                         {"puzzle_id": puzzle.pk, "moves": ["e4e6"]})
         assert response.status_code == 400
         assert Attempt.objects.count() == 0
+
+
+class TestShowSolution:
+    def test_reveal_before_solving_costs_a_lapse(self, client, user, puzzle):
+        data = post(client, "/train/solution", {"puzzle_id": puzzle.pk}).json()
+        assert data["status"] == "revealed"
+        assert data["grade"] == 1
+        assert data["solution_line_san"] == ["exd5", "Qxd5", "Nc3"]
+        assert data["played_in_game"] == "a3"
+        puzzle.refresh_from_db()
+        assert puzzle.lapses == 1
+        attempt = Attempt.objects.get()
+        assert attempt.correct is False and attempt.moves == []
+
+    def test_reveal_after_graded_outcome_is_free(self, client, user, puzzle):
+        post(client, "/train/attempt",
+             {"puzzle_id": puzzle.pk, "moves": ["g1f3"]})  # the graded lapse
+        data = post(client, "/train/solution", {"puzzle_id": puzzle.pk}).json()
+        assert data["status"] == "revealed" and "grade" not in data
+        assert Attempt.objects.count() == 1  # no second recording
+        puzzle.refresh_from_db()
+        assert puzzle.lapses == 1
 
 
 class TestOperational:

@@ -67,6 +67,52 @@ def next_api(request):
     })
 
 
+def _gradable(puzzle, now) -> bool:
+    """Stateless retry rule: a puzzle grades only while it is in the serving
+    pool (new or due). The first terminal outcome reschedules it, so every
+    later submission this cycle is practice — validated, never recorded."""
+    return puzzle.due_at is None or puzzle.due_at <= now
+
+
+def _record_outcome(puzzle, *, correct, moves_log, failed_at_ply,
+                    latency_ms, hints_used):
+    result = sm2_update(
+        Sm2State(interval_days=puzzle.interval_days,
+                 ease_factor=puzzle.ease_factor,
+                 repetitions=puzzle.repetitions,
+                 lapses=puzzle.lapses),
+        correct=correct, latency_ms=latency_ms, hints_used=hints_used,
+    )
+    Attempt.objects.create(
+        puzzle=puzzle, moves=moves_log, correct=correct,
+        failed_at_ply=failed_at_ply, latency_ms=latency_ms,
+        hints_used=hints_used, grade=result.grade,
+    )
+    puzzle.interval_days = result.state.interval_days
+    puzzle.ease_factor = result.state.ease_factor
+    puzzle.repetitions = result.state.repetitions
+    puzzle.lapses = result.state.lapses
+    puzzle.due_at = timezone.now() + timedelta(days=result.state.interval_days)
+    puzzle.save(update_fields=["interval_days", "ease_factor", "repetitions",
+                               "lapses", "due_at"])
+    return result
+
+
+def _solution_payload(puzzle, moves=()):
+    solution = _matched_or_primary(puzzle, list(moves))
+    pv = solution.get("pv_uci") or [solution["uci"]]
+    occurrence = (puzzle.occurrences.select_related("game")
+                  .order_by("-game__end_time").first())
+    return {
+        "solution_line_uci": pv,
+        "solution_line_san": _line_san(puzzle.fen, pv),
+        "motifs": list(puzzle.motifs.values_list("name", flat=True)),
+        "explanation": puzzle.explanation,
+        "game_url": occurrence.game.url if occurrence else "",
+        "played_in_game": occurrence.played_san if occurrence else "",
+    }
+
+
 @require_POST
 def attempt_api(request):
     payload = json.loads(request.body)
@@ -82,49 +128,44 @@ def attempt_api(request):
         return JsonResponse({"status": "continue",
                              "opponent_reply": verdict.opponent_reply_uci})
 
-    # Terminal: record the attempt and reschedule (SM-2).
-    hints_used = int(payload.get("hints_used", 0))
-    latency_ms = payload.get("latency_ms")
+    gradable = _gradable(puzzle, timezone.now())
     correct = verdict.status == "solved"
-    result = sm2_update(
-        Sm2State(interval_days=puzzle.interval_days,
-                 ease_factor=puzzle.ease_factor,
-                 repetitions=puzzle.repetitions,
-                 lapses=puzzle.lapses),
-        correct=correct, latency_ms=latency_ms, hints_used=hints_used,
-    )
-    Attempt.objects.create(
-        puzzle=puzzle, moves=verdict.moves_log, correct=correct,
-        failed_at_ply=verdict.failed_at_ply, latency_ms=latency_ms,
-        hints_used=hints_used, grade=result.grade,
-    )
-    now = timezone.now()
-    puzzle.interval_days = result.state.interval_days
-    puzzle.ease_factor = result.state.ease_factor
-    puzzle.repetitions = result.state.repetitions
-    puzzle.lapses = result.state.lapses
-    puzzle.due_at = now + timedelta(days=result.state.interval_days)
-    puzzle.save(update_fields=["interval_days", "ease_factor", "repetitions",
-                               "lapses", "due_at"])
+    response = {"status": verdict.status, "practice": not gradable}
+    if gradable:
+        result = _record_outcome(
+            puzzle, correct=correct, moves_log=verdict.moves_log,
+            failed_at_ply=verdict.failed_at_ply,
+            latency_ms=payload.get("latency_ms"),
+            hints_used=int(payload.get("hints_used", 0)),
+        )
+        response["grade"] = result.grade
+        response["next_due"] = puzzle.due_at.isoformat()
 
-    solution = _matched_or_primary(puzzle, moves)
-    pv = solution.get("pv_uci") or [solution["uci"]]
-    response = {
-        "status": verdict.status,
-        "grade": result.grade,
-        "next_due": puzzle.due_at.isoformat(),
-        "solution_line_uci": pv,
-        "solution_line_san": _line_san(puzzle.fen, pv),
-        "motifs": list(puzzle.motifs.values_list("name", flat=True)),
-        "explanation": puzzle.explanation,
-    }
-    if verdict.status == "failed":
-        occurrence = (puzzle.occurrences.select_related("game")
-                      .order_by("-game__end_time").first())
+    if correct:
+        # A solve (graded or practice) earns the full reveal.
+        response |= _solution_payload(puzzle, moves)
+    else:
+        # Wrong: signal only — the solution stays behind /train/solution.
         response["failed_at_ply"] = verdict.failed_at_ply
-        response["game_url"] = occurrence.game.url if occurrence else ""
-        response["played_in_game"] = occurrence.played_san if occurrence else ""
     return JsonResponse(response)
+
+
+@require_POST
+def solution_api(request):
+    """Show solution. Revealing before solving costs a recorded lapse —
+    same price as failing; after this cycle's outcome it is free."""
+    payload = json.loads(request.body)
+    puzzle = Puzzle.objects.get(pk=payload["puzzle_id"])
+    response = {"status": "revealed"}
+    if _gradable(puzzle, timezone.now()):
+        result = _record_outcome(
+            puzzle, correct=False, moves_log=[], failed_at_ply=None,
+            latency_ms=payload.get("latency_ms"),
+            hints_used=int(payload.get("hints_used", 0)),
+        )
+        response["grade"] = result.grade
+        response["next_due"] = puzzle.due_at.isoformat()
+    return JsonResponse(response | _solution_payload(puzzle))
 
 
 @require_POST
